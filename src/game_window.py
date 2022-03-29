@@ -10,6 +10,7 @@ from . import resources
 from .camera import Camera
 from .world_controller import WorldController
 from .tile import Tile, TileType
+from .structure import Structure
 
 
 class GameWindow(pyglet.window.Window):
@@ -37,8 +38,9 @@ class GameWindow(pyglet.window.Window):
         self.batch = pyglet.graphics.Batch()
         self.gui_batch = pyglet.graphics.Batch()
 
-        self.tile_group = pyglet.graphics.OrderedGroup(0)
-        self.ui_group = pyglet.graphics.OrderedGroup(1)
+        self.background_group = pyglet.graphics.OrderedGroup(0)
+        self.forground_group = pyglet.graphics.OrderedGroup(1)
+        self.gui_group = pyglet.graphics.OrderedGroup(2)
 
         self.keys = key.KeyStateHandler()
         self.push_handlers(self.keys)
@@ -46,7 +48,9 @@ class GameWindow(pyglet.window.Window):
 
         self.fps_display = pyglet.window.FPSDisplay(self)
 
-        self.world_controller = WorldController(self.batch, self.tile_group)
+        self.world_controller = WorldController(
+            self.batch, self.background_group, self.forground_group
+        )
 
         # Initialize camera position to middle of the world
         self.camera.position = (
@@ -59,7 +63,7 @@ class GameWindow(pyglet.window.Window):
         self.tile_highlighter = pyglet.sprite.Sprite(
             resources.tile_highlighter,
             batch=self.batch,
-            group=self.ui_group,
+            group=self.gui_group,
         )
         self.tile_highlighter.visible = False
 
@@ -71,18 +75,7 @@ class GameWindow(pyglet.window.Window):
         self.draggind_started_at_tile = None
         self.dragging = False
 
-        self.build_mode_tile_type = None
-
-    def on_draw(self):
-        self.clear()
-
-        with self.camera:
-            self.batch.draw()
-
-        with self.gui_camera:
-            self.gui_batch.draw()
-
-        self.fps_display.draw()
+        self.build_mode_type = None
 
     def screen_to_world_point(self, x: int, y: int) -> tuple[int, int]:
         # Potentially move to camera class
@@ -98,11 +91,6 @@ class GameWindow(pyglet.window.Window):
         )
         return math.floor(world_x), math.floor(world_y)
 
-    def on_key_press(self, symbol, modifiers):
-        if symbol == key.ESCAPE:
-            # return True so that the game does not exit
-            return True
-
     def update_hover_tile(self, x, y):
         world_x, world_y = self.screen_to_world_point(x, y)
         tile = self.world_controller.world.get_tile_at(world_x, world_y)
@@ -116,14 +104,44 @@ class GameWindow(pyglet.window.Window):
             self.tile_label.text = ""
             self.tile_highlighter.visible = False
 
+    # Pyglet Window Methods
+    def update(self, dt: float):
+        # Move camera with arrow keys
+        if self.keys[key.UP] or self.keys[key.W]:
+            self.camera.move(0, 1)
+        if self.keys[key.DOWN] or self.keys[key.S]:
+            self.camera.move(0, -1)
+        if self.keys[key.LEFT] or self.keys[key.A]:
+            self.camera.move(-1, 0)
+        if self.keys[key.RIGHT] or self.keys[key.D]:
+            self.camera.move(1, 0)
+
+    def on_draw(self):
+        self.clear()
+
+        with self.camera:
+            self.batch.draw()
+
+        with self.gui_camera:
+            self.gui_batch.draw()
+
+        self.fps_display.draw()
+
+    def on_key_press(self, symbol, modifiers):
+        if symbol == key.ESCAPE:
+            # return True so that the game does not exit
+            return True
+
     def on_key_release(self, symbol, modifiers):
         if symbol == key.ESCAPE:
             self.highligted_tiles.clear()
-            self.build_mode_tile_type = NONE
+            self.build_mode_type = None
         if symbol == key._1:
-            self.build_mode_tile_type = TileType.EMPTY
+            self.build_mode_type = TileType.EMPTY
         if symbol == key._2:
-            self.build_mode_tile_type = TileType.FLOOR
+            self.build_mode_type = TileType.FLOOR
+        if symbol == key._3:
+            self.build_mode_type = "wall"
 
     def on_mouse_motion(self, x, y, dx, dy):
         if not len(self.highligted_tiles):
@@ -178,7 +196,7 @@ class GameWindow(pyglet.window.Window):
                             sprite = pyglet.sprite.Sprite(
                                 resources.tile_highlighter,
                                 batch=self.batch,
-                                group=self.ui_group,
+                                group=self.gui_group,
                             )
                             sprite.x = tile_x * constants.TILE_SIZE
                             sprite.y = tile_y * constants.TILE_SIZE
@@ -227,14 +245,21 @@ class GameWindow(pyglet.window.Window):
                     tile = self.world_controller.world.get_tile_at(tile_x, tile_y)
                     if tile:
 
-                        if self.build_mode_tile_type:
-
-                            self.world_controller.world.tiles[
-                                (tile_x, tile_y)
-                            ].type = self.build_mode_tile_type
+                        if self.build_mode_type:
+                            if isinstance(self.build_mode_type, TileType):
+                                # Change the tile type
+                                self.world_controller.world.tiles[
+                                    (tile_x, tile_y)
+                                ].type = self.build_mode_type
+                            if isinstance(self.build_mode_type, str):
+                                # Build Structure or Furniture
+                                self.world_controller.world.place_structure(
+                                    self.build_mode_type, tile
+                                )
 
             self.update_hover_tile(x, y)
 
+        # TODO: For highlighting furnitures
         # scale_x = end_tile_pos[0] - start_tile_pos[0] + 1
         # scale_y = end_tile_pos[1] - start_tile_pos[1] + 1
 
@@ -249,14 +274,3 @@ class GameWindow(pyglet.window.Window):
             self.camera.zoom_in()
         if scroll_y > 0:
             self.camera.zoom_out()
-
-    def update(self, dt: float):
-        # Move camera with arrow keys
-        if self.keys[key.UP] or self.keys[key.W]:
-            self.camera.move(0, 1)
-        if self.keys[key.DOWN] or self.keys[key.S]:
-            self.camera.move(0, -1)
-        if self.keys[key.LEFT] or self.keys[key.A]:
-            self.camera.move(-1, 0)
-        if self.keys[key.RIGHT] or self.keys[key.D]:
-            self.camera.move(1, 0)

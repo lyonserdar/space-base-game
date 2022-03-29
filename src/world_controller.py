@@ -9,6 +9,7 @@ from . import constants
 from . import resources
 from .world import World
 from .tile import TileType, Tile
+from .structure import Structure
 
 
 class WorldController:
@@ -20,20 +21,22 @@ class WorldController:
         self,
         batch: pyglet.graphics.Batch,
         group: pyglet.graphics.OrderedGroup,
+        forground_group: pyglet.graphics.OrderedGroup,
     ):
         self.batch = batch
         self.group = group
+        self.forground_group = forground_group
 
-        self.world = World()
+        self.world: World = World(on_structure_created=self.on_structure_created)
 
-        # TODO: maybe turn it into dict[Tile, Sprite]
-        self.sprites: dict[(x, y), pygame.sprite.Sprite] = {}
-        self.create_sprites()
+        self.tile_sprites: dict[Tile, pygame.sprite.Sprite] = {}
+        self.structure_sprites: dict[Structure, pygame.sprite.Sprite] = {}
+        self.create_tile_sprites()
         # self.randomize_tiles()
 
         # pyglet.clock.schedule_interval(self.randomize_tiles, 2)
 
-    def create_sprites(self) -> None:
+    def create_tile_sprites(self) -> None:
         """Creates the sprites and initializes the sprites dictionary"""
         for x in range(self.world.width):
             for y in range(self.world.height):
@@ -44,16 +47,15 @@ class WorldController:
                 if tile.type is not TileType.EMPTY:
                     # TODO: may not be needed
                     sprite = Sprite(
-                        # resources.tiles[tile.type],
-                        resources.walls[0],
+                        resources.tiles[tile.type],
                         x * constants.TILE_SIZE,
                         y * constants.TILE_SIZE,
                         batch=self.batch,
                         group=self.group,
                     )
-                    self.sprites[(x, y)] = sprite
+                    self.tile_sprites[tile] = sprite
                 else:
-                    self.sprites[(x, y)] = None
+                    self.tile_sprites[tile] = None
 
         print("Sprites created")
 
@@ -72,16 +74,29 @@ class WorldController:
         x = tile.x
         y = tile.y
 
-        if (x, y) in self.sprites:
+        if tile in self.tile_sprites:
             if tile.type is TileType.EMPTY:
-                self.sprites[(x, y)] = None
+                self.tile_sprites[tile] = None
             else:
                 sprite = Sprite(
-                    # resources.tiles[tile.type],
-                    resources.walls[0],
+                    resources.tiles[tile.type],
                     x * constants.TILE_SIZE,
                     y * constants.TILE_SIZE,
                     batch=self.batch,
                     group=self.group,
                 )
-                self.sprites[(x, y)] = sprite
+                self.tile_sprites[tile] = sprite
+
+    def on_structure_created(self, structure: Structure) -> None:
+        x = structure.tiles[0].x
+        y = structure.tiles[0].y
+
+        if structure not in self.structure_sprites:
+            sprite = Sprite(
+                resources.walls[0],
+                x * constants.TILE_SIZE,
+                y * constants.TILE_SIZE,
+                batch=self.batch,
+                group=self.forground_group,
+            )
+            self.structure_sprites[structure] = sprite
