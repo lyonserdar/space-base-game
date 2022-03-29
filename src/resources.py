@@ -14,4 +14,10 @@ tiles = {
     TileType.FLOOR: pyglet.resource.image("tiles/floor.png"),
 }
 
+# TODO: change the location of walls
+wall_spritesheet = pyglet.resource.image("tiles/walls.png")
+wall_seq = pyglet.image.ImageGrid(wall_spritesheet, 6, 9)
+walls = {0: pyglet.image.TextureGrid(wall_seq)[9 * 2 + 6]}
+
+
 tile_highlighter = pyglet.resource.image("highlight.png")

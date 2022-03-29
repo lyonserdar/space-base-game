@@ -9,6 +9,7 @@ from . import constants
 from . import resources
 from .camera import Camera
 from .world_controller import WorldController
+from .tile import Tile, TileType
 
 
 class GameWindow(pyglet.window.Window):
@@ -62,10 +63,15 @@ class GameWindow(pyglet.window.Window):
         )
         self.tile_highlighter.visible = False
 
-        self.highligted_tiles = []
+        # TODO: move this to its own file
+        # TODO: use pooling so that it's more efficient
+        self.highligted_tiles = {}
 
         self.dragging_started_at = (0, 0)
+        self.draggind_started_at_tile = None
         self.dragging = False
+
+        self.build_mode_tile_type = None
 
     def on_draw(self):
         self.clear()
@@ -97,28 +103,37 @@ class GameWindow(pyglet.window.Window):
             # return True so that the game does not exit
             return True
 
+    def update_hover_tile(self, x, y):
+        world_x, world_y = self.screen_to_world_point(x, y)
+        tile = self.world_controller.world.get_tile_at(world_x, world_y)
+        if tile:
+            tile_type = tile.type
+            self.tile_label.text = f"Tile: ({world_x}, {world_y}), {tile_type}"
+            self.tile_highlighter.visible = True
+            self.tile_highlighter.x = world_x * constants.TILE_SIZE
+            self.tile_highlighter.y = world_y * constants.TILE_SIZE
+        else:
+            self.tile_label.text = ""
+            self.tile_highlighter.visible = False
+
     def on_key_release(self, symbol, modifiers):
         if symbol == key.ESCAPE:
             self.highligted_tiles.clear()
+            self.build_mode_tile_type = NONE
+        if symbol == key._1:
+            self.build_mode_tile_type = TileType.EMPTY
+        if symbol == key._2:
+            self.build_mode_tile_type = TileType.FLOOR
 
     def on_mouse_motion(self, x, y, dx, dy):
         if not len(self.highligted_tiles):
-            world_x, world_y = self.screen_to_world_point(x, y)
-            tile = self.world_controller.world.get_tile_at(world_x, world_y)
-            if tile:
-                tile_type = tile.type
-                self.tile_label.text = f"Tile: ({world_x}, {world_y}), {tile_type}"
-                self.tile_highlighter.visible = True
-                self.tile_highlighter.x = world_x * constants.TILE_SIZE
-                self.tile_highlighter.y = world_y * constants.TILE_SIZE
-            else:
-                self.tile_label.text = ""
-                self.tile_highlighter.visible = False
+            self.update_hover_tile(x, y)
         else:
             self.tile_label.text = ""
             self.tile_highlighter.visible = False
 
     def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
+        # TODO: Fix the bug when world moves the selection is not correct
         if self.dragging:
             dragging_ended_at = (x, y)
             start_tile_pos = self.screen_to_world_point(
@@ -141,25 +156,44 @@ class GameWindow(pyglet.window.Window):
             start_tile = self.world_controller.world.get_tile_at(*start_tile_pos)
             end_tile = self.world_controller.world.get_tile_at(*end_tile_pos)
 
-            if not start_tile or not end_tile:
-                return
+            # self.highligted_tiles.clear()
+            keys_to_delete = []
+            for tile_sprite in self.highligted_tiles:
+                if (
+                    tile_sprite[0] < start_tile_pos[0]
+                    or tile_sprite[0] > end_tile_pos[0]
+                    or tile_sprite[1] < start_tile_pos[1]
+                    or tile_sprite[1] > end_tile_pos[1]
+                ):
+                    keys_to_delete.append(tile_sprite)
 
-            self.highligted_tiles.clear()
+            for key in keys_to_delete:
+                del self.highligted_tiles[key]
+
             for tile_x in range(start_tile_pos[0], end_tile_pos[0] + 1):
                 for tile_y in range(start_tile_pos[1], end_tile_pos[1] + 1):
-                    sprite = pyglet.sprite.Sprite(
-                        resources.tile_highlighter,
-                        batch=self.batch,
-                        group=self.ui_group,
-                    )
-                    sprite.x = tile_x * constants.TILE_SIZE
-                    sprite.y = tile_y * constants.TILE_SIZE
-                    self.highligted_tiles.append(sprite)
+                    tile = self.world_controller.world.get_tile_at(tile_x, tile_y)
+                    if tile:
+                        if (tile_x, tile_y) not in self.highligted_tiles:
+                            sprite = pyglet.sprite.Sprite(
+                                resources.tile_highlighter,
+                                batch=self.batch,
+                                group=self.ui_group,
+                            )
+                            sprite.x = tile_x * constants.TILE_SIZE
+                            sprite.y = tile_y * constants.TILE_SIZE
+                            self.highligted_tiles[(tile_x, tile_y)] = sprite
 
     def on_mouse_press(self, x, y, button, modifiers):
         if button == mouse.LEFT:
+
             self.dragging = True
             self.dragging_started_at = (x, y)
+            tile_x, tile_y = self.screen_to_world_point(x, y)
+            self.draggind_started_at_tile = self.world_controller.world.tiles[
+                (tile_x, tile_y)
+            ]
+            self.tile_highlighter.visible = False
 
     def on_mouse_release(self, x, y, button, modifiers):
         if button == mouse.LEFT:
@@ -186,20 +220,20 @@ class GameWindow(pyglet.window.Window):
             start_tile = self.world_controller.world.get_tile_at(*start_tile_pos)
             end_tile = self.world_controller.world.get_tile_at(*end_tile_pos)
 
-            if not start_tile or not end_tile:
-                return
-
             self.highligted_tiles.clear()
+
             for tile_x in range(start_tile_pos[0], end_tile_pos[0] + 1):
                 for tile_y in range(start_tile_pos[1], end_tile_pos[1] + 1):
-                    sprite = pyglet.sprite.Sprite(
-                        resources.tile_highlighter,
-                        batch=self.batch,
-                        group=self.ui_group,
-                    )
-                    sprite.x = tile_x * constants.TILE_SIZE
-                    sprite.y = tile_y * constants.TILE_SIZE
-                    self.highligted_tiles.append(sprite)
+                    tile = self.world_controller.world.get_tile_at(tile_x, tile_y)
+                    if tile:
+
+                        if self.build_mode_tile_type:
+
+                            self.world_controller.world.tiles[
+                                (tile_x, tile_y)
+                            ].type = self.build_mode_tile_type
+
+            self.update_hover_tile(x, y)
 
         # scale_x = end_tile_pos[0] - start_tile_pos[0] + 1
         # scale_y = end_tile_pos[1] - start_tile_pos[1] + 1

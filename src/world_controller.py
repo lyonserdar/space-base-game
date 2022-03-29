@@ -26,9 +26,10 @@ class WorldController:
 
         self.world = World()
 
+        # TODO: maybe turn it into dict[Tile, Sprite]
         self.sprites: dict[(x, y), pygame.sprite.Sprite] = {}
         self.create_sprites()
-        self.randomize_tiles()
+        # self.randomize_tiles()
 
         # pyglet.clock.schedule_interval(self.randomize_tiles, 2)
 
@@ -41,8 +42,10 @@ class WorldController:
                 tile.on_type_change = self.on_type_change
 
                 if tile.type is not TileType.EMPTY:
+                    # TODO: may not be needed
                     sprite = Sprite(
-                        resources.tiles[tile.type],
+                        # resources.tiles[tile.type],
+                        resources.walls[0],
                         x * constants.TILE_SIZE,
                         y * constants.TILE_SIZE,
                         batch=self.batch,
@@ -74,7 +77,8 @@ class WorldController:
                 self.sprites[(x, y)] = None
             else:
                 sprite = Sprite(
-                    resources.tiles[tile.type],
+                    # resources.tiles[tile.type],
+                    resources.walls[0],
                     x * constants.TILE_SIZE,
                     y * constants.TILE_SIZE,
                     batch=self.batch,
