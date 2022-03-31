@@ -1,7 +1,7 @@
 """
 Structure data class, installed objects like walls
 """
-from .tile import Tile
+from .tile import Tile, TileType
 
 
 class Structure:
@@ -13,17 +13,29 @@ class Structure:
         self,
         type_: str = "",
         movement_speed: float = 0.0,
-        width: int = 1,
-        height: int = 1,
     ):
         self.type_ = type_
         self.movement_speed = movement_speed
-        self.width = width
-        self.height = height
-        self.tiles: list[Tile] = []
+        self.tile: Tile = None
 
-        # TODO: Implement larger structures
-        # TODO: Implement object rotation
+        self._on_structure_changed_callbacks = set()
+
+        self.is_valid_position = self.is_valid_position_default
+
+    # Subscriptions
+    def subscribe_on_structure_changed(self, fn):
+        self._on_structure_changed_callbacks.add(fn)
+
+    def unsubscribe_on_structure_changed(self, fn):
+        self._on_structure_changed_callbacks.remove(fn)
+
+    def is_valid_position_default(self, tile: Tile) -> bool:
+        if tile._type == TileType.FLOOR:
+            return True
+        return False
+
+    def is_valid_position_door(self, tile: Tile) -> bool:
+        return True
 
     @staticmethod
     def create_blueprint(
@@ -37,21 +49,23 @@ class Structure:
         blueprint = Structure(
             type_,
             movement_speed,
-            width,
-            height,
         )
         return blueprint
 
     @staticmethod
     def build_blueprint(blueprint: "Structure", tile: Tile) -> "Structure":
+        if not blueprint.is_valid_position(tile):
+            return None
+
         structure = Structure(
             blueprint.type_,
             blueprint.movement_speed,
-            blueprint.width,
-            blueprint.height,
         )
 
         # TODO: fill the tiles list
-        structure.tiles.append(tile)
+        structure.tile = tile
+
+        for callback in structure._on_structure_changed_callbacks:
+            callback(structure)
 
         return structure

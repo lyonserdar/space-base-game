@@ -8,9 +8,12 @@ import math
 from . import constants
 from . import resources
 from .camera import Camera
-from .world_controller import WorldController
+from .world_manager import WorldManager
+from .sound_manager import SoundManager
+from .sprite_manager import SpriteManager
 from .tile import Tile, TileType
 from .structure import Structure
+from .job import Job
 
 
 class GameWindow(pyglet.window.Window):
@@ -29,7 +32,7 @@ class GameWindow(pyglet.window.Window):
             self,
             speed=2.0,
             zoom_speed=1.1,
-            min_zoom=4.0,
+            min_zoom=1.0,
             max_zoom=8.0,
             center=True,
         )
@@ -48,14 +51,19 @@ class GameWindow(pyglet.window.Window):
 
         self.fps_display = pyglet.window.FPSDisplay(self)
 
-        self.world_controller = WorldController(
-            self.batch, self.background_group, self.forground_group
+        self.world_manager: WorldManager = WorldManager()
+        self.sound_manager: SoundManager = SoundManager(self.world_manager)
+        self.sprite_manager: SpriteManager = SpriteManager(
+            self.world_manager,
+            self.batch,
+            self.background_group,
+            self.forground_group,
         )
 
         # Initialize camera position to middle of the world
         self.camera.position = (
-            self.world_controller.world.width * constants.TILE_SIZE // 2,
-            self.world_controller.world.height * constants.TILE_SIZE // 2,
+            self.world_manager.world.width * constants.TILE_SIZE // 2,
+            self.world_manager.world.height * constants.TILE_SIZE // 2,
         )
 
         self.tile_label = pyglet.text.Label("(0, 0)", x=10, y=50, batch=self.gui_batch)
@@ -77,23 +85,9 @@ class GameWindow(pyglet.window.Window):
 
         self.build_mode_type = None
 
-    def screen_to_world_point(self, x: int, y: int) -> tuple[int, int]:
-        # Potentially move to camera class
-        world_x = (
-            x / constants.TILE_SIZE / self.camera.zoom
-            + self.camera.x / constants.TILE_SIZE
-            - self.width // 2 / constants.TILE_SIZE / self.camera.zoom
-        )
-        world_y = (
-            y / constants.TILE_SIZE / self.camera.zoom
-            + self.camera.y / constants.TILE_SIZE
-            - self.height // 2 / constants.TILE_SIZE / self.camera.zoom
-        )
-        return math.floor(world_x), math.floor(world_y)
-
     def update_hover_tile(self, x, y):
-        world_x, world_y = self.screen_to_world_point(x, y)
-        tile = self.world_controller.world.get_tile_at(world_x, world_y)
+        world_x, world_y = self.camera.screen_to_world_point(x, y)
+        tile = self.world_manager.world.get_tile_at(world_x, world_y)
         if tile:
             tile_type = tile.type
             self.tile_label.text = f"Tile: ({world_x}, {world_y}), {tile_type}"
@@ -154,10 +148,10 @@ class GameWindow(pyglet.window.Window):
         # TODO: Fix the bug when world moves the selection is not correct
         if self.dragging:
             dragging_ended_at = (x, y)
-            start_tile_pos = self.screen_to_world_point(
+            start_tile_pos = self.camera.screen_to_world_point(
                 self.dragging_started_at[0], self.dragging_started_at[1]
             )
-            end_tile_pos = self.screen_to_world_point(
+            end_tile_pos = self.camera.screen_to_world_point(
                 dragging_ended_at[0], dragging_ended_at[1]
             )
 
@@ -171,8 +165,8 @@ class GameWindow(pyglet.window.Window):
                 start_tile_pos = (start_tile_pos[0], end_tile_pos[1])
                 end_tile_pos = (end_tile_pos[0], temp)
 
-            start_tile = self.world_controller.world.get_tile_at(*start_tile_pos)
-            end_tile = self.world_controller.world.get_tile_at(*end_tile_pos)
+            start_tile = self.world_manager.world.get_tile_at(*start_tile_pos)
+            end_tile = self.world_manager.world.get_tile_at(*end_tile_pos)
 
             # self.highligted_tiles.clear()
             keys_to_delete = []
@@ -190,7 +184,7 @@ class GameWindow(pyglet.window.Window):
 
             for tile_x in range(start_tile_pos[0], end_tile_pos[0] + 1):
                 for tile_y in range(start_tile_pos[1], end_tile_pos[1] + 1):
-                    tile = self.world_controller.world.get_tile_at(tile_x, tile_y)
+                    tile = self.world_manager.world.get_tile_at(tile_x, tile_y)
                     if tile:
                         if (tile_x, tile_y) not in self.highligted_tiles:
                             sprite = pyglet.sprite.Sprite(
@@ -207,8 +201,8 @@ class GameWindow(pyglet.window.Window):
 
             self.dragging = True
             self.dragging_started_at = (x, y)
-            tile_x, tile_y = self.screen_to_world_point(x, y)
-            self.draggind_started_at_tile = self.world_controller.world.tiles[
+            tile_x, tile_y = self.camera.screen_to_world_point(x, y)
+            self.draggind_started_at_tile = self.world_manager.world.tiles[
                 (tile_x, tile_y)
             ]
             self.tile_highlighter.visible = False
@@ -218,10 +212,10 @@ class GameWindow(pyglet.window.Window):
             self.dragging = False
 
             dragging_ended_at = (x, y)
-            start_tile_pos = self.screen_to_world_point(
+            start_tile_pos = self.camera.screen_to_world_point(
                 self.dragging_started_at[0], self.dragging_started_at[1]
             )
-            end_tile_pos = self.screen_to_world_point(
+            end_tile_pos = self.camera.screen_to_world_point(
                 dragging_ended_at[0], dragging_ended_at[1]
             )
 
@@ -235,39 +229,52 @@ class GameWindow(pyglet.window.Window):
                 start_tile_pos = (start_tile_pos[0], end_tile_pos[1])
                 end_tile_pos = (end_tile_pos[0], temp)
 
-            start_tile = self.world_controller.world.get_tile_at(*start_tile_pos)
-            end_tile = self.world_controller.world.get_tile_at(*end_tile_pos)
+            start_tile = self.world_manager.world.get_tile_at(*start_tile_pos)
+            end_tile = self.world_manager.world.get_tile_at(*end_tile_pos)
 
             self.highligted_tiles.clear()
 
             for tile_x in range(start_tile_pos[0], end_tile_pos[0] + 1):
                 for tile_y in range(start_tile_pos[1], end_tile_pos[1] + 1):
-                    tile = self.world_controller.world.get_tile_at(tile_x, tile_y)
+                    tile = self.world_manager.world.get_tile_at(tile_x, tile_y)
                     if tile:
 
                         if self.build_mode_type:
+                            # TODO: jobs for tile types like floor
                             if isinstance(self.build_mode_type, TileType):
                                 # Change the tile type
-                                self.world_controller.world.tiles[
+                                self.world_manager.world.tiles[
                                     (tile_x, tile_y)
                                 ].type = self.build_mode_type
+
                             if isinstance(self.build_mode_type, str):
                                 # Build Structure or Furniture
-                                self.world_controller.world.place_structure(
-                                    self.build_mode_type, tile
-                                )
+                                structure_type = self.build_mode_type
+                                # Check if already exists at the tile
+                                if not any(
+                                    job
+                                    for job in self.world_manager.world.jobs
+                                    if job.tile == tile
+                                ):
+                                    # Check if its a valid positon for the structure
+                                    if self.world_manager.world.is_structure_valid_position(
+                                        structure_type, tile
+                                    ):
+                                        job = Job(
+                                            tile,
+                                            1,
+                                            # lambda: self.world_manager.world.place_structure(
+                                            # structure_type, tile
+                                            # ),
+                                        )
+                                        job.unsubscribe_on_tile_completed(
+                                            self.world_manager.world.place_structure
+                                        )
+
+                                        self.world_manager.world.jobs.append(job)
+                                        job.do_work(1)
 
             self.update_hover_tile(x, y)
-
-        # TODO: For highlighting furnitures
-        # scale_x = end_tile_pos[0] - start_tile_pos[0] + 1
-        # scale_y = end_tile_pos[1] - start_tile_pos[1] + 1
-
-        # self.tile_highlighter.visible = True
-        # self.tile_highlighter.x = start_tile_pos[0] * constants.TILE_SIZE
-        # self.tile_highlighter.y = start_tile_pos[1] * constants.TILE_SIZE
-        # self.tile_highlighter.scale_x = scale_x
-        # self.tile_highlighter.scale_y = scale_y
 
     def on_mouse_scroll(self, x, y, scroll_x, scroll_y):
         if scroll_y < 0:

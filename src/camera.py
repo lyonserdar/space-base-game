@@ -4,6 +4,9 @@ Based on: pyglet/examples
 """
 import pyglet
 from pyglet.math import Vec2
+import math
+
+from . import constants
 
 
 class Camera:
@@ -63,6 +66,20 @@ class Camera:
     def zoom_out(self) -> None:
         """Zooms out the camera"""
         self.zoom -= self.zoom_speed
+
+    def screen_to_world_point(self, x: int, y: int) -> tuple[int, int]:
+        # Potentially move to camera class
+        world_x = (
+            x / constants.TILE_SIZE / self.zoom
+            + self.x / constants.TILE_SIZE
+            - self.window.width // 2 / constants.TILE_SIZE / self.zoom
+        )
+        world_y = (
+            y / constants.TILE_SIZE / self.zoom
+            + self.y / constants.TILE_SIZE
+            - self.window.height // 2 / constants.TILE_SIZE / self.zoom
+        )
+        return math.floor(world_x), math.floor(world_y)
 
     def __enter__(self):
         offset_x = 0
