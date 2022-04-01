@@ -2,6 +2,7 @@
 Build Mode Manager
 """
 import pyglet
+from pyglet.sprite import Sprite
 from pyglet.window import key, mouse
 import math
 
@@ -48,11 +49,9 @@ class BuildModeManager:
         )
         self.tile_highlighter.visible = False
 
-        self.highligted_tiles = {}
-
-        self.dragging_started_at = (0, 0)
-        self.draggind_started_at_tile = None
-        self.dragging = False
+        self.highligted_tiles: dict[Tile, Sprite] = {}
+        self.draggind_started_at_tile: Tile = None
+        self.dragging: bool = False
 
         self.build_mode_type: str = ""
 
@@ -73,7 +72,7 @@ class BuildModeManager:
             self.tile_highlighter.visible = False
 
     def update(self, dt):
-        self.mouse_buttons.values
+        x, y = self.input_manager.mouse.position
 
         if self.keys[key.ESCAPE]:
             self.highligted_tiles.clear()
@@ -92,118 +91,77 @@ class BuildModeManager:
             self.gui_manager.set_tile_info("")
             self.tile_highlighter.visible = False
 
-    def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
-        # TODO: Fix the bug when world moves the selection is not correct
+        if not self.dragging:
+            if self.mouse_buttons[mouse.LEFT]:
+                self.start_dragging(x, y)
+
         if self.dragging:
-            dragging_ended_at = (x, y)
-            start_tile_pos = self.camera_manager.camera.screen_to_world_point(
-                self.dragging_started_at[0], self.dragging_started_at[1]
-            )
-            end_tile_pos = self.camera_manager.camera.screen_to_world_point(
-                dragging_ended_at[0], dragging_ended_at[1]
-            )
+            self.update_highlighted_tiles(x, y)
+            if not self.mouse_buttons[mouse.LEFT]:
+                self.finilize_dragging(x, y)
 
-            if start_tile_pos[0] > end_tile_pos[0]:
-                temp = start_tile_pos[0]
-                start_tile_pos = (end_tile_pos[0], start_tile_pos[1])
-                end_tile_pos = (temp, end_tile_pos[1])
+    def start_dragging(self, x, y) -> None:
+        self.dragging = True
+        self.dragging_started_at = (x, y)
+        x, y = self.camera_manager.camera.screen_to_world_point(x, y)
+        self.draggind_started_at_tile = self.world_manager.world.get_tile_at(x, y)
+        self.tile_highlighter.visible = False
 
-            if start_tile_pos[1] > end_tile_pos[1]:
-                temp = start_tile_pos[1]
-                start_tile_pos = (start_tile_pos[0], end_tile_pos[1])
-                end_tile_pos = (end_tile_pos[0], temp)
+    def update_highlighted_tiles(self, x, y) -> None:
+        end_tile_pos = self.camera_manager.camera.screen_to_world_point(x, y)
 
-            start_tile = self.world_manager.world.get_tile_at(*start_tile_pos)
-            end_tile = self.world_manager.world.get_tile_at(*end_tile_pos)
+        temp_pos_x = self.draggind_started_at_tile.x, end_tile_pos[0]
+        temp_pos_y = self.draggind_started_at_tile.y, end_tile_pos[1]
 
-            # self.highligted_tiles.clear()
-            keys_to_delete = []
-            for tile_sprite in self.highligted_tiles:
-                if (
-                    tile_sprite[0] < start_tile_pos[0]
-                    or tile_sprite[0] > end_tile_pos[0]
-                    or tile_sprite[1] < start_tile_pos[1]
-                    or tile_sprite[1] > end_tile_pos[1]
+        start_tile_pos = min(temp_pos_x), min(temp_pos_y)
+        end_tile_pos = max(temp_pos_x), max(temp_pos_y)
+
+        start_tile = self.world_manager.world.get_tile_at(*start_tile_pos)
+        end_tile = self.world_manager.world.get_tile_at(*end_tile_pos)
+
+        sprites_to_delete = []
+        for tile in self.highligted_tiles:
+            if (
+                tile.x < start_tile.x
+                or tile.x > end_tile.x
+                or tile.y < start_tile.y
+                or tile.y > end_tile.y
+            ):
+                sprites_to_delete.append(tile)
+
+        for tile in sprites_to_delete:
+            del self.highligted_tiles[tile]
+
+        for tile_x in range(start_tile.x, end_tile.x + 1):
+            for tile_y in range(start_tile.y, end_tile.y + 1):
+                tile = self.world_manager.world.get_tile_at(tile_x, tile_y)
+                if tile and tile not in self.highligted_tiles:
+                    sprite = pyglet.sprite.Sprite(
+                        resources.tile_highlighter,
+                        batch=self.sprite_manager.batch,
+                        group=self.sprite_manager.gui_group,
+                    )
+                    sprite.x = tile_x * constants.TILE_SIZE
+                    sprite.y = tile_y * constants.TILE_SIZE
+                    self.highligted_tiles[tile] = sprite
+
+    def finilize_dragging(self, x, y) -> None:
+        self.dragging = False
+
+        for tile in self.highligted_tiles:
+            if self.build_mode_type and isinstance(self.build_mode_type, str):
+                if self.world_manager.world.is_structure_valid_position(
+                    self.build_mode_type, tile
                 ):
-                    keys_to_delete.append(tile_sprite)
+                    if not any(
+                        job for job in self.world_manager.world.jobs if job.tile == tile
+                    ):
+                        job = Job(tile, 1, self.build_mode_type)
+                        job.subscribe_on_job_completed(
+                            self.world_manager.world.place_structure
+                        )
 
-            for key in keys_to_delete:
-                del self.highligted_tiles[key]
+                        self.world_manager.world.jobs.append(job)
 
-            for tile_x in range(start_tile_pos[0], end_tile_pos[0] + 1):
-                for tile_y in range(start_tile_pos[1], end_tile_pos[1] + 1):
-                    tile = self.world_manager.world.get_tile_at(tile_x, tile_y)
-                    if tile:
-                        if (tile_x, tile_y) not in self.highligted_tiles:
-                            sprite = pyglet.sprite.Sprite(
-                                resources.tile_highlighter,
-                                batch=self.sprite_manager.batch,
-                                group=self.sprite_manager.gui_group,
-                            )
-                            sprite.x = tile_x * constants.TILE_SIZE
-                            sprite.y = tile_y * constants.TILE_SIZE
-                            self.highligted_tiles[(tile_x, tile_y)] = sprite
-
-    def on_mouse_press(self, x, y, button, modifiers):
-        if button == mouse.LEFT:
-
-            self.dragging = True
-            self.dragging_started_at = (x, y)
-            tile_x, tile_y = self.camera_manager.camera.screen_to_world_point(x, y)
-            self.draggind_started_at_tile = self.world_manager.world.tiles[
-                (tile_x, tile_y)
-            ]
-            self.tile_highlighter.visible = False
-
-    def on_mouse_release(self, x, y, button, modifiers):
-        if button == mouse.LEFT:
-            self.dragging = False
-
-            dragging_ended_at = (x, y)
-            start_tile_pos = self.camera_manager.camera.screen_to_world_point(
-                self.dragging_started_at[0], self.dragging_started_at[1]
-            )
-            end_tile_pos = self.camera_manager.camera.screen_to_world_point(
-                dragging_ended_at[0], dragging_ended_at[1]
-            )
-
-            if start_tile_pos[0] > end_tile_pos[0]:
-                temp = start_tile_pos[0]
-                start_tile_pos = (end_tile_pos[0], start_tile_pos[1])
-                end_tile_pos = (temp, end_tile_pos[1])
-
-            if start_tile_pos[1] > end_tile_pos[1]:
-                temp = start_tile_pos[1]
-                start_tile_pos = (start_tile_pos[0], end_tile_pos[1])
-                end_tile_pos = (end_tile_pos[0], temp)
-
-            start_tile = self.world_manager.world.get_tile_at(*start_tile_pos)
-            end_tile = self.world_manager.world.get_tile_at(*end_tile_pos)
-
-            self.highligted_tiles.clear()
-
-            for tile_x in range(start_tile_pos[0], end_tile_pos[0] + 1):
-                for tile_y in range(start_tile_pos[1], end_tile_pos[1] + 1):
-                    tile = self.world_manager.world.get_tile_at(tile_x, tile_y)
-                    if tile:
-                        if self.build_mode_type and isinstance(
-                            self.build_mode_type, str
-                        ):
-                            structure_type = self.build_mode_type
-                            if self.world_manager.world.is_structure_valid_position(
-                                structure_type, tile
-                            ):
-                                if not any(
-                                    job
-                                    for job in self.world_manager.world.jobs
-                                    if job.tile == tile
-                                ):
-                                    job = Job(tile, 1, structure_type)
-                                    job.subscribe_on_job_completed(
-                                        self.world_manager.world.place_structure
-                                    )
-
-                                    self.world_manager.world.jobs.append(job)
-                                    job.do_work(1)
-
-            self.update_hover_tile(x, y)
+        self.highligted_tiles.clear()
+        self.update_hover_tile(x, y)

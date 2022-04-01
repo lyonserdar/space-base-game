@@ -76,8 +76,6 @@ class GameWindow(pyglet.window.Window):
         self.sprite_manager.update(dt)
         self.build_mode_manager.update(dt)
 
-        print(self.input_manager.mouse.position)
-
         # Reset the mouse scroll
         # TODO: There might be a better place for this
         self.input_manager.mouse.scroll = 0, 0
@@ -102,7 +100,7 @@ class GameWindow(pyglet.window.Window):
     # Mouse Events
     def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
         self.input_manager.mouse.position = x, y
-        self.build_mode_manager.on_mouse_drag(x, y, dx, dy, buttons, modifiers)
+        pass
 
     def on_mouse_enter(self, x, y):
         # self.input_manager.mouse.position = x, y
@@ -117,11 +115,11 @@ class GameWindow(pyglet.window.Window):
 
     def on_mouse_press(self, x, y, button, modifiers):
         # self.input_manager.mouse.position = x, y
-        self.build_mode_manager.on_mouse_press(x, y, button, modifiers)
+        pass
 
     def on_mouse_release(self, x, y, button, modifiers):
         # self.input_manager.mouse.position = x, y
-        self.build_mode_manager.on_mouse_release(x, y, button, modifiers)
+        pass
 
     def on_mouse_scroll(self, x, y, scroll_x, scroll_y):
         # self.input_manager.mouse.position = x, y
