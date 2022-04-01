@@ -1,6 +1,7 @@
 """
 Word class for world data
 """
+from itertools import chain
 from collections import deque
 from typing import Callable
 
@@ -23,77 +24,68 @@ class World:
         self.height: int = height
 
         self.tiles: dict[(int, int), Tile] = {}
-        self.structures: dict[(int, int), Structure] = {}
         self.blueprints: dict[str, Structure] = {}
-        self._on_tile_changed_callbacks = set()
+        self.structures: dict[Tile, list[Structure]] = {}
+
         self._on_structure_changed_callbacks = set()
 
         # TODO: refactor to job manager
         self.jobs = deque()
 
-        self.initialize_tiles()
+        self.initialize()
 
         self.blueprints = {
+            "floor": Structure.create_blueprint(
+                "floor", movement_speed=0.5, connected_texture=False
+            ),
             "wall": Structure.create_blueprint(
-                type_="wall",
-                movement_speed=0.0,
-            )
+                "wall", movement_speed=0.0, connected_texture=True
+            ),
         }
 
     # Subscriptions
-    def subscribe_on_tile_changed(self, fn):
-        self._on_tile_changed_callbacks.add(fn)
-
-    def unsubscribe_on_tile_changed(self, fn):
-        self._on_tile_changed_callbacks.remove(fn)
-
     def subscribe_on_structure_changed(self, fn):
         self._on_structure_changed_callbacks.add(fn)
 
     def unsubscribe_on_structure_changed(self, fn):
         self._on_structure_changed_callbacks.remove(fn)
 
-    def on_tile_changed(self, tile: Tile) -> None:
-        for callback in self._on_tile_changed_callbacks:
-            callback(tile)
-
     def on_structure_changed(self, structure: Structure) -> None:
         for callback in self._on_structure_changed_callbacks:
             callback(structure)
 
-    def initialize_tiles(self):
-        """Initializes the tiles dictionary with empty tiles"""
+    def initialize(self):
         for x in range(self.width):
             for y in range(self.height):
                 tile = Tile(x, y)
-                tile.subscribe_on_tile_changed(self.on_tile_changed)
                 self.tiles[(x, y)] = tile
+                self.structures[tile] = []
 
-        print(f"World created with {self.width}x{self.height} tiles")
+        print("World Initialized")
 
     def get_tile_at(self, x: int, y: int) -> Tile | None:
-        """Returns the Tile object at given coordinates"""
         if (x, y) not in self.tiles:
             return None
         return self.tiles[(x, y)]
 
     def is_structure_valid_position(self, type_: str, tile: Tile) -> bool:
-        return self.blueprints[type_].is_valid_position(tile)
+        return self.blueprints[type_].is_valid_position(self.structures[tile])
 
     def get_structure_neighbors(self, structure: Structure) -> list[Structure]:
+        # TODO: Fix this for the new neighbor list system
         neighbors = []
 
         x = structure.tile.x
         y = structure.tile.y
 
-        w = (x - 1, y + 0)
-        n = (x + 0, y + 1)
-        e = (x + 1, y + 0)
-        s = (x + 0, y - 1)
-        nw = (x - 1, y + 1)
-        ne = (x + 1, y + 1)
-        se = (x + 1, y - 1)
-        sw = (x - 1, y - 1)
+        w = self.get_tile_at(x - 1, y + 0)
+        n = self.get_tile_at(x + 0, y + 1)
+        e = self.get_tile_at(x + 1, y + 0)
+        s = self.get_tile_at(x + 0, y - 1)
+        nw = self.get_tile_at(x - 1, y + 1)
+        ne = self.get_tile_at(x + 1, y + 1)
+        se = self.get_tile_at(x + 1, y - 1)
+        sw = self.get_tile_at(x - 1, y - 1)
 
         if w in self.structures:
             neighbors.append(self.structures[w])
@@ -112,20 +104,19 @@ class World:
         if sw in self.structures:
             neighbors.append(self.structures[sw])
 
-        return neighbors
+        return list(chain(*neighbors))
 
-    def place_structure(self, type_: str, tile: Tile) -> None:
-        if type_ not in self.blueprints:
+    def place_structure(self, job: Job) -> None:
+        if job.structure_type not in self.blueprints:
             return
 
-        if (tile.x, tile.y) in self.structures:
-            return
-
-        structure = Structure.build_blueprint(self.blueprints[type_], tile)
-        structure.subscribe_on_structure_changed(self.on_structure_changed)
+        structure = Structure.build_blueprint(
+            self.blueprints[job.structure_type], job.tile
+        )
+        structure.subscribe_on_changed(self.on_structure_changed)
 
         if structure:
-            self.structures[(tile.x, tile.y)] = structure
+            self.structures[job.tile].append(structure)
 
             neighbors = self.get_structure_neighbors(structure)
             for neighbor in neighbors:

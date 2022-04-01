@@ -18,14 +18,14 @@ class Camera:
         self,
         window: pyglet.window.Window,
         speed: float = 1.0,
-        zoom_speed: float = 1.25,
-        min_zoom: float = 1.0,
-        max_zoom: float = 10.0,
+        # zoom_speed: float = 1.25,
+        min_zoom: int = 1.0,
+        max_zoom: int = 10.0,
         center: bool = False,
     ):
         self.window = window
         self.speed = speed
-        self.zoom_speed = zoom_speed
+        # self.zoom_speed = zoom_speed
         self.min_zoom = min_zoom
         self.max_zoom = max_zoom
         self.center = center
@@ -59,13 +59,17 @@ class Camera:
         self.x += self.speed * x
         self.y += self.speed * y
 
-    def zoom_in(self) -> None:
+    def zoom_in(self, dt) -> None:
         """Zooms in the camera"""
-        self.zoom += self.zoom_speed
+        # TODO: make the zoom smoother by making pixel increments
+        # self.zoom += self.zoom_speed
+        self.zoom += 1
 
-    def zoom_out(self) -> None:
+    def zoom_out(self, dt) -> None:
         """Zooms out the camera"""
-        self.zoom -= self.zoom_speed
+        # TODO: make the zoom smoother by making pixel increments
+        # self.zoom -= self.zoom_speed * dt
+        self.zoom -= 1
 
     def screen_to_world_point(self, x: int, y: int) -> tuple[int, int]:
         # Potentially move to camera class

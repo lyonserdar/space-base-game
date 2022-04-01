@@ -5,6 +5,7 @@ import pyglet
 
 from . import resources
 from .world_manager import WorldManager
+from .input_manager import InputManager
 
 
 class SoundManager:
@@ -12,18 +13,15 @@ class SoundManager:
     Sound Manager
     """
 
-    def __init__(self, world_manager: WorldManager):
+    def __init__(self, input_manager: InputManager, world_manager: WorldManager):
+        self.input_manager: InputManager = input_manager
         self.world_manager: WorldManager = world_manager
         self.cooldown: float = 0.1
         self.playing = False
 
-        self.world_manager.world.subscribe_on_tile_changed(self.on_tile_changed)
         self.world_manager.world.subscribe_on_structure_changed(
             self.on_structure_changed
         )
-
-    def on_tile_changed(self, tile) -> None:
-        self.play("tile_changed")
 
     def on_structure_changed(self, structure) -> None:
         self.play("tile_changed")
@@ -36,3 +34,6 @@ class SoundManager:
             self.playing = True
             resources.audio[audio_name].play()
             pyglet.clock.schedule_once(self.reset_playing, self.cooldown)
+
+    def update(self, dt) -> None:
+        pass

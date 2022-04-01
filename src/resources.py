@@ -1,7 +1,5 @@
 import pyglet
 
-from .tile import TileType
-
 pyglet.resource.path = ["resources", "resources/tiles", "resources/audio"]
 pyglet.resource.reindex()
 
@@ -9,15 +7,12 @@ pyglet.resource.reindex()
 pyglet.image.Texture.default_min_filter = pyglet.gl.GL_NEAREST
 pyglet.image.Texture.default_mag_filter = pyglet.gl.GL_NEAREST
 
-tiles = {
-    TileType.EMPTY: None,
-    TileType.FLOOR: pyglet.resource.image("tiles/floor.png"),
-}
-
+# Load Spritesheets
 wall_spritesheet = pyglet.resource.image("tiles/walls.png")
 wall_seq = pyglet.image.ImageGrid(wall_spritesheet, 6, 9)
 
 structures = {
+    "floor": pyglet.resource.image("tiles/floor.png"),
     "wall": {
         0: pyglet.image.TextureGrid(wall_seq)[9 * 2 + 6],
         1: pyglet.image.TextureGrid(wall_seq)[9 * 5 + 5],
