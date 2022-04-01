@@ -6,15 +6,20 @@ from pyglet.window import key, mouse
 
 from .mouse import Mouse
 
+from .manager import Manager
 
-class InputManager:
+
+class InputManager(Manager):
     """
     InputManager
     """
 
-    def __init__(self):
-        self.keys = key.KeyStateHandler()
-        self.mouse_buttons = mouse.MouseStateHandler()
+    def __init__(
+        self,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
 
         self.mouse: Mouse = Mouse()
 

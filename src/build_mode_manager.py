@@ -19,8 +19,10 @@ from .tile import Tile
 from .structure import Structure
 from .job import Job
 
+from .manager import Manager
 
-class BuildModeManager:
+
+class BuildModeManager(Manager):
     """
     Build Mode Manager
     """
@@ -33,7 +35,10 @@ class BuildModeManager:
         camera_manager: CameraManager,
         gui_manager: GUIManager,
         sprite_manager: SpriteManager,
+        *args,
+        **kwargs,
     ):
+        super().__init__(*args, **kwargs)
         self.window: pyglet.window.Window = window
         self.input_manager: InputManager = input_manager
         self.world_manager: WorldManager = world_manager
@@ -54,9 +59,6 @@ class BuildModeManager:
         self.dragging: bool = False
 
         self.build_mode_type: str = ""
-
-        self.keys = self.input_manager.keys
-        self.mouse_buttons = self.input_manager.mouse_buttons
 
     def update_hover_tile(self, x, y):
         # TODO: screen_to_world_point move to camera_manager

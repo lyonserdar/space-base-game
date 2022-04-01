@@ -1,11 +1,13 @@
 import pyglet
 
-from src.game_window import GameWindow
+# from src.game_window import GameWindow
+from src.game import Game
 
 
 def main():
-    game_window = GameWindow()
-    pyglet.clock.schedule(game_window.update)
+    # game_window = GameWindow()
+    game = Game()
+    pyglet.clock.schedule(Game.update)
     pyglet.app.run()
 
 

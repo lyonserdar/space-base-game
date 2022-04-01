@@ -6,14 +6,22 @@ import pyglet
 from . import resources
 from .world_manager import WorldManager
 from .input_manager import InputManager
+from .manager import Manager
 
 
-class SoundManager:
+class SoundManager(Manager):
     """
     Sound Manager
     """
 
-    def __init__(self, input_manager: InputManager, world_manager: WorldManager):
+    def __init__(
+        self,
+        input_manager: InputManager,
+        world_manager: WorldManager,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
         self.input_manager: InputManager = input_manager
         self.world_manager: WorldManager = world_manager
         self.cooldown: float = 0.1

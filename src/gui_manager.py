@@ -16,23 +16,28 @@ from .sprite_manager import SpriteManager
 from .tile import Tile
 from .structure import Structure
 from .job import Job
+from .manager import Manager
 
 
-class GUIManager:
+class GUIManager(Manager):
     """
     GUI Manager
     """
 
-    def __init__(self, window: pyglet.window.Window, input_manager: InputManager):
+    def __init__(
+        self,
+        window: pyglet.window.Window,
+        input_manager: InputManager,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
         self.window: pyglet.window.Window = window
         self.input_manager: InputManager = input_manager
         self.batch = pyglet.graphics.Batch()
         self.keys = key.KeyStateHandler()
 
         self.fps_display = pyglet.window.FPSDisplay(self.window)
-
-        self.keys = key.KeyStateHandler()
-        self.mouse_buttons = mouse.MouseStateHandler()
 
         self.tile_label = pyglet.text.Label("(0, 0)", x=10, y=50, batch=self.batch)
 

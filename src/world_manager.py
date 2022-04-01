@@ -6,14 +6,20 @@ import pyglet
 from .world import World
 from .tile import Tile
 from .structure import Structure
+from .manager import Manager
 
 
-class WorldManager:
+class WorldManager(Manager):
     """
     World Manager
     """
 
-    def __init__(self):
+    def __init__(
+        self,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
         self.world: World = World()
         self.world.subscribe_on_structure_changed(self.on_structure_changed)
 

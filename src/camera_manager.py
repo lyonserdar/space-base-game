@@ -9,8 +9,10 @@ from .camera import Camera
 from .input_manager import InputManager
 from .world_manager import WorldManager
 
+from .manager import Manager
 
-class CameraManager:
+
+class CameraManager(Manager):
     """
     Camera Manager
     """
@@ -20,7 +22,10 @@ class CameraManager:
         window: pyglet.window.Window,
         input_manager: InputManager,
         world_manager: WorldManager,
+        *args,
+        **kwargs,
     ):
+        super().__init__(*args, **kwargs)
         self.window: pyglet.window.Window = window
         self.input_manager: InputManager = input_manager
         self.world_manager: WorldManager = world_manager

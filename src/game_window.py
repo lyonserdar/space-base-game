@@ -56,25 +56,30 @@ class GameWindow(pyglet.window.Window):
             self.sprite_manager,
         )
 
+        self.managers = [
+            self.input_manager,
+            self.world_manager,
+            self.camera_manager,
+            self.gui_manager,
+            self.sound_manager,
+            self.sprite_manager,
+            self.build_mode_manager,
+        ]
+
         self.register_push_handlers()
 
-    def register_push_handlers(self):
+    def register_push_handlers(self) -> None:
         self.push_handlers(self.keys)
         self.push_handlers(self.mouse_buttons)
         self.push_handlers(self.on_key_press)
 
-        self.push_handlers(self.input_manager.keys)
-        self.push_handlers(self.input_manager.mouse_buttons)
+        for manager in self.managers:
+            self.push_handlers(manager.keys)
+            self.push_handlers(manager.mouse_buttons)
 
-    # Pyglet Window Methods
-    def update(self, dt: float):
-        self.input_manager.update(dt)
-        self.world_manager.update(dt)
-        self.camera_manager.update(dt)
-        self.gui_manager.update(dt)
-        self.sound_manager.update(dt)
-        self.sprite_manager.update(dt)
-        self.build_mode_manager.update(dt)
+    def update(self, dt: float) -> None:
+        for manager in self.managers:
+            manager.update(dt)
 
         # Reset the mouse scroll
         # TODO: There might be a better place for this

@@ -11,13 +11,21 @@ from .tile import Tile
 from .structure import Structure
 from .world_manager import WorldManager
 
+from .manager import Manager
 
-class SpriteManager:
+
+class SpriteManager(Manager):
     """
     Sprite Manager
     """
 
-    def __init__(self, world_manager: WorldManager):
+    def __init__(
+        self,
+        world_manager: WorldManager,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
         self.world_manager: WorldManager = world_manager
 
         self.batch = pyglet.graphics.Batch()
