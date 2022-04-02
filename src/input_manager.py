@@ -14,13 +14,10 @@ class InputManager(Manager):
     InputManager
     """
 
-    def __init__(
-        self,
-        *args,
-        **kwargs,
-    ):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+    def init(self) -> None:
         self.mouse: Mouse = Mouse()
 
     def update(self, dt: float):

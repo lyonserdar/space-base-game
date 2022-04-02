@@ -6,10 +6,8 @@ from pyglet.window import key, mouse
 
 from . import constants
 from .camera import Camera
-from .input_manager import InputManager
-from .world_manager import WorldManager
-
 from .manager import Manager
+from .input_manager import InputManager
 
 
 class CameraManager(Manager):
@@ -17,18 +15,12 @@ class CameraManager(Manager):
     Camera Manager
     """
 
-    def __init__(
-        self,
-        window: pyglet.window.Window,
-        input_manager: InputManager,
-        world_manager: WorldManager,
-        *args,
-        **kwargs,
-    ):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.window: pyglet.window.Window = window
+
+    def init(self, input_manager: InputManager, window) -> None:
         self.input_manager: InputManager = input_manager
-        self.world_manager: WorldManager = world_manager
+        self.window = window
 
         self.camera = Camera(
             self.window,
@@ -42,12 +34,9 @@ class CameraManager(Manager):
         self.gui_camera = Camera(self.window)
         # Initialize camera position to middle of the world
         self.camera.position = (
-            self.world_manager.world.width * constants.TILE_SIZE // 2,
-            self.world_manager.world.height * constants.TILE_SIZE // 2,
+            constants.WOLRD_WIDTH * constants.TILE_SIZE // 2,
+            constants.WORLD_HEIGHT * constants.TILE_SIZE // 2,
         )
-
-        self.keys = self.input_manager.keys
-        self.mouse_buttons = self.input_manager.keys
 
     def update(self, dt: float):
         """Updates every frame"""

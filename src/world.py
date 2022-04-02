@@ -122,4 +122,5 @@ class World:
             for neighbor in neighbors:
                 self.on_structure_changed(neighbor)
 
+            self.jobs.remove(job)
             self.on_structure_changed(structure)

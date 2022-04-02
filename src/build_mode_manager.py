@@ -8,18 +8,15 @@ import math
 
 from . import constants
 from . import resources
-from .camera import Camera
-from .camera_manager import CameraManager
-from .input_manager import InputManager
-from .gui_manager import GUIManager
-from .world_manager import WorldManager
-from .sound_manager import SoundManager
-from .sprite_manager import SpriteManager
 from .tile import Tile
 from .structure import Structure
 from .job import Job
-
 from .manager import Manager
+from .input_manager import InputManager
+from .camera_manager import CameraManager
+from .world_manager import WorldManager
+from .gui_manager import GUIManager
+from .sprite_manager import SpriteManager
 
 
 class BuildModeManager(Manager):
@@ -27,22 +24,20 @@ class BuildModeManager(Manager):
     Build Mode Manager
     """
 
-    def __init__(
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def init(
         self,
-        window: pyglet.window.Window,
         input_manager: InputManager,
-        world_manager: WorldManager,
         camera_manager: CameraManager,
+        world_manager: WorldManager,
         gui_manager: GUIManager,
         sprite_manager: SpriteManager,
-        *args,
-        **kwargs,
-    ):
-        super().__init__(*args, **kwargs)
-        self.window: pyglet.window.Window = window
+    ) -> None:
         self.input_manager: InputManager = input_manager
-        self.world_manager: WorldManager = world_manager
         self.camera_manager: CameraManager = camera_manager
+        self.world_manager: WorldManager = world_manager
         self.gui_manager: GUIManager = gui_manager
         self.sprite_manager: SpriteManager = sprite_manager
 
@@ -150,7 +145,7 @@ class BuildModeManager(Manager):
     def finilize_dragging(self, x, y) -> None:
         self.dragging = False
 
-        for tile in self.highligted_tiles:
+        for tile in sorted(self.highligted_tiles, key=lambda tile: (tile.x, tile.y)):
             if self.build_mode_type and isinstance(self.build_mode_type, str):
                 if self.world_manager.world.is_structure_valid_position(
                     self.build_mode_type, tile

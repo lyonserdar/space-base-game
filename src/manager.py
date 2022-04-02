@@ -16,5 +16,9 @@ class Manager(ABC):
         self.mouse_buttons = mouse.MouseStateHandler()
 
     @abstractmethod
+    def init(self) -> None:
+        ...
+
+    @abstractmethod
     def update(self, dt) -> None:
         ...

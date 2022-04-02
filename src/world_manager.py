@@ -14,12 +14,10 @@ class WorldManager(Manager):
     World Manager
     """
 
-    def __init__(
-        self,
-        *args,
-        **kwargs,
-    ):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+    def init(self) -> None:
         self.world: World = World()
         self.world.subscribe_on_structure_changed(self.on_structure_changed)
 

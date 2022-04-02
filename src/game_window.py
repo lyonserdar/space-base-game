@@ -21,51 +21,26 @@ class GameWindow(pyglet.window.Window):
 
     def __init__(
         self,
-        width=constants.WINDOW_WIDTH,
-        height=constants.WINDOW_HEIGHT,
+        width: int = constants.WINDOW_WIDTH,
+        height: int = constants.WINDOW_HEIGHT,
         *args,
         **kwargs,
     ):
         super().__init__(width, height, *args, **kwargs)
 
+    def init(
+        self,
+        input_manager: InputManager,
+        camera_manager: CameraManager,
+        sprite_manager: SpriteManager,
+        gui_manager: GUIManager,
+    ) -> None:
+        self.input_manager: InputManager = input_manager
+        self.camera_manager: CameraManager = camera_manager
+        self.sprite_manager: SpriteManager = sprite_manager
+        self.gui_manager: GUIManager = gui_manager
         self.keys = key.KeyStateHandler()
         self.mouse_buttons = mouse.MouseStateHandler()
-
-        self.input_manager: InputManager = InputManager()
-        self.world_manager: WorldManager = WorldManager()
-        self.camera_manager: CameraManager = CameraManager(
-            self,
-            self.input_manager,
-            self.world_manager,
-        )
-        self.gui_manager: GUIManager = GUIManager(
-            self,
-            self.input_manager,
-        )
-        self.sound_manager: SoundManager = SoundManager(
-            self.input_manager,
-            self.world_manager,
-        )
-        self.sprite_manager: SpriteManager = SpriteManager(self.world_manager)
-        self.build_mode_manager: BuildModeManager = BuildModeManager(
-            self,
-            self.input_manager,
-            self.world_manager,
-            self.camera_manager,
-            self.gui_manager,
-            self.sprite_manager,
-        )
-
-        self.managers = [
-            self.input_manager,
-            self.world_manager,
-            self.camera_manager,
-            self.gui_manager,
-            self.sound_manager,
-            self.sprite_manager,
-            self.build_mode_manager,
-        ]
-
         self.register_push_handlers()
 
     def register_push_handlers(self) -> None:
@@ -73,17 +48,8 @@ class GameWindow(pyglet.window.Window):
         self.push_handlers(self.mouse_buttons)
         self.push_handlers(self.on_key_press)
 
-        for manager in self.managers:
-            self.push_handlers(manager.keys)
-            self.push_handlers(manager.mouse_buttons)
-
     def update(self, dt: float) -> None:
-        for manager in self.managers:
-            manager.update(dt)
-
-        # Reset the mouse scroll
-        # TODO: There might be a better place for this
-        self.input_manager.mouse.scroll = 0, 0
+        pass
 
     def on_draw(self):
         self.clear()
