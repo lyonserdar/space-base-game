@@ -81,4 +81,4 @@ class Game:
         # DEBUG
         if self.world_manager.world.jobs:
             job = self.world_manager.world.jobs[0]
-            job.do_work(0.1)
+            job.do_work(1)

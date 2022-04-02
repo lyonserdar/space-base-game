@@ -150,15 +150,7 @@ class BuildModeManager(Manager):
                 if self.world_manager.world.is_structure_valid_position(
                     self.build_mode_type, tile
                 ):
-                    if not any(
-                        job for job in self.world_manager.world.jobs if job.tile == tile
-                    ):
-                        job = Job(tile, 1, self.build_mode_type)
-                        job.subscribe_on_job_completed(
-                            self.world_manager.world.place_structure
-                        )
-
-                        self.world_manager.world.jobs.append(job)
+                    self.world_manager.world.create_job(tile, self.build_mode_type)
 
         self.highligted_tiles.clear()
         self.update_hover_tile(x, y)

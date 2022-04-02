@@ -9,6 +9,7 @@ from . import resources
 from .world import World
 from .tile import Tile
 from .structure import Structure
+from .job import Job
 from .world_manager import WorldManager
 
 from .manager import Manager
@@ -30,12 +31,13 @@ class SpriteManager(Manager):
         self.gui_group = pyglet.graphics.OrderedGroup(2)
 
         self.structure_sprites: dict[Structure, pygame.sprite.Sprite] = {}
-
-        self.world_manager.world.subscribe_on_structure_changed(
-            self.on_structure_changed
-        )
+        self.job_sprites: dict[Job, pygame.sprite.Sprite] = {}
 
         self.world = self.world_manager.world
+
+        self.world.subscribe_on_structure_changed(self.on_structure_changed)
+        self.world.subscribe_on_job_created(self.on_job_created)
+        self.world.subscribe_on_job_completed(self.on_job_completed)
 
         self.create_sprites()
 
@@ -51,6 +53,76 @@ class SpriteManager(Manager):
                     group=self.background_group,
                 )
                 self.structure_sprites[structure] = sprite
+
+    def get_image_for_job(self, job: Job):
+        # TODO: merge this with get_image_for_structure
+        structure = job.blueprint
+
+        if job.blueprint.connected_texture:
+            x = job.tile.x
+            y = job.tile.y
+            index = 0
+
+            world = self.world_manager.world
+
+            w = world.get_tile_at(x - 1, y + 0)
+            n = world.get_tile_at(x + 0, y + 1)
+            e = world.get_tile_at(x + 1, y + 0)
+            s = world.get_tile_at(x + 0, y - 1)
+            nw = world.get_tile_at(x - 1, y + 1)
+            ne = world.get_tile_at(x + 1, y + 1)
+            se = world.get_tile_at(x + 1, y - 1)
+            sw = world.get_tile_at(x - 1, y - 1)
+
+            # Check neighbors
+            if w in world.structures:
+                if structure.type_ in (s.type_ for s in world.structures[w]):
+                    index += 1
+            if n in world.structures:
+                if structure.type_ in (s.type_ for s in world.structures[n]):
+                    index += 2
+            if e in world.structures:
+                if structure.type_ in (s.type_ for s in world.structures[e]):
+                    index += 4
+            if s in world.structures:
+                if structure.type_ in (s.type_ for s in world.structures[s]):
+                    index += 8
+            if nw in world.structures:
+                if (
+                    structure.type_ in (s.type_ for s in world.structures[nw])
+                    and structure.type_ in (s.type_ for s in world.structures[n])
+                    and structure.type_ in (s.type_ for s in world.structures[w])
+                ):
+                    index += 16
+            if ne in world.structures:
+                if (
+                    structure.type_ in (s.type_ for s in world.structures[ne])
+                    and structure.type_ in (s.type_ for s in world.structures[n])
+                    and structure.type_ in (s.type_ for s in world.structures[e])
+                ):
+                    index += 32
+            if se in world.structures:
+                if (
+                    structure.type_ in (s.type_ for s in world.structures[se])
+                    and structure.type_ in (s.type_ for s in world.structures[s])
+                    and structure.type_ in (s.type_ for s in world.structures[e])
+                ):
+                    index += 64
+            if sw in world.structures:
+                if (
+                    structure.type_ in (s.type_ for s in world.structures[sw])
+                    and structure.type_ in (s.type_ for s in world.structures[s])
+                    and structure.type_ in (s.type_ for s in world.structures[w])
+                ):
+                    index += 128
+
+            if index in resources.structures[structure.type_]:
+                image = resources.structures[structure.type_][index]
+            else:
+                image = resources.structures[structure.type_][0]
+            return image
+        else:
+            return resources.structures[structure.type_]
 
     def get_image_for_structure(self, structure: Structure):
         if structure.connected_texture:
@@ -129,17 +201,32 @@ class SpriteManager(Manager):
         x = structure.tile.x
         y = structure.tile.y
 
-        # structure.on_structure_changed = self.on_structure_changed
-
         if structure not in self.structure_sprites:
             sprite = Sprite(
                 self.get_image_for_structure(structure),
                 x * constants.TILE_SIZE,
                 y * constants.TILE_SIZE,
                 batch=self.batch,
-                group=self.forground_group,
+                group=self.background_group,
             )
             self.structure_sprites[structure] = sprite
+
+    def on_job_created(self, job: Job) -> None:
+        x = job.tile.x
+        y = job.tile.y
+
+        sprite = Sprite(
+            self.get_image_for_job(job),
+            x * constants.TILE_SIZE,
+            y * constants.TILE_SIZE,
+            batch=self.batch,
+            group=self.forground_group,
+        )
+        sprite.color = (255, 0, 0)
+        self.job_sprites[job] = sprite
+
+    def on_job_completed(self, job: Job) -> None:
+        del self.job_sprites[job]
 
     def update(self, dt) -> None:
         pass

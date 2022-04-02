@@ -17,6 +17,7 @@ class Structure:
         height: int = 1,
         connected_texture: bool = False,
         layer_order: int = 0,  # background: 0, forground:1, gui: 2
+        build_time: int = 10,
     ):
         self.type_: str = type_
         self.movement_speed: float = movement_speed
@@ -25,6 +26,7 @@ class Structure:
         self.height: int = height
         self.connected_texture: bool = connected_texture
         self.layer_order: int = layer_order
+        self.build_time: int = build_time
 
         self.constructed: bool = False
 
@@ -47,9 +49,11 @@ class Structure:
             else:
                 return True
 
+        if self.type_ in (s.type_ for s in structures_at_tile):
+            return False
+
         if self.structure_types_needs_to_be_under:
             for type_ in self.structure_types_needs_to_be_under:
-                print(type_)
                 if type_ not in (s.type_ for s in structures_at_tile):
                     return False
 
@@ -63,15 +67,17 @@ class Structure:
         width: int = 1,
         height: int = 1,
         connected_texture: bool = False,
+        build_time: int = 10,
     ) -> "Structure":
         """Creates the blueprint"""
         # TODO: maybe create a blueprint class
         blueprint = Structure(
-            type_,
-            movement_speed,
-            width,
-            height,
-            connected_texture,
+            type_=type_,
+            movement_speed=movement_speed,
+            width=width,
+            height=height,
+            connected_texture=connected_texture,
+            build_time=build_time,
         )
 
         blueprint.structure_types_needs_to_be_under = structure_types_needs_to_be_under
@@ -81,11 +87,11 @@ class Structure:
     @staticmethod
     def build_blueprint(blueprint: "Structure", tile: Tile) -> "Structure":
         structure = Structure(
-            blueprint.type_,
-            blueprint.movement_speed,
-            blueprint.width,
-            blueprint.height,
-            blueprint.connected_texture,
+            type_=blueprint.type_,
+            movement_speed=blueprint.movement_speed,
+            width=blueprint.width,
+            height=blueprint.height,
+            connected_texture=blueprint.connected_texture,
         )
 
         # TODO: fill the tiles list

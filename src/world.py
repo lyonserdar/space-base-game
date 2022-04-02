@@ -28,6 +28,8 @@ class World:
         self.structures: dict[Tile, list[Structure]] = {}
 
         self._on_structure_changed_callbacks = set()
+        self._on_job_created_callbacks = set()
+        self._on_job_completed_callbacks = set()
 
         # TODO: refactor to job manager
         self.jobs = deque()
@@ -36,10 +38,18 @@ class World:
 
         self.blueprints = {
             "floor": Structure.create_blueprint(
-                ["empty"], "floor", movement_speed=0.5, connected_texture=False
+                structure_types_needs_to_be_under=["empty"],
+                type_="floor",
+                movement_speed=0.5,
+                connected_texture=False,
+                build_time=5,
             ),
             "wall": Structure.create_blueprint(
-                ["floor"], "wall", movement_speed=0.0, connected_texture=True
+                structure_types_needs_to_be_under=["floor"],
+                type_="wall",
+                movement_speed=0.0,
+                connected_texture=True,
+                build_time=8,
             ),
         }
 
@@ -50,9 +60,41 @@ class World:
     def unsubscribe_on_structure_changed(self, fn):
         self._on_structure_changed_callbacks.remove(fn)
 
+    def subscribe_on_job_created(self, fn):
+        self._on_job_created_callbacks.add(fn)
+
+    def unsubscribe_on_job_created(self, fn):
+        self._on_job_created_callbacks.remove(fn)
+
+    def subscribe_on_job_completed(self, fn):
+        self._on_job_completed_callbacks.add(fn)
+
+    def unsubscribe_on_job_completed(self, fn):
+        self._on_job_completed_callbacks.remove(fn)
+
     def on_structure_changed(self, structure: Structure) -> None:
         for callback in self._on_structure_changed_callbacks:
             callback(structure)
+
+    def on_job_created(self, job: Job) -> None:
+        for callback in self._on_job_created_callbacks:
+            callback(job)
+
+    def on_job_completed(self, job: Job) -> None:
+        self.place_structure(job)
+        self.jobs.remove(job)
+
+        for callback in self._on_job_completed_callbacks:
+            callback(job)
+
+    def create_job(self, tile: Tile, structure_type: str) -> None:
+        if not any(job for job in self.jobs if job.tile == tile):
+            blueprint = self.blueprints[structure_type]
+            job = Job(tile, blueprint)
+            job.subscribe_on_job_created(self.on_job_created)
+            job.subscribe_on_job_completed(self.on_job_completed)
+            self.on_job_created(job)
+            self.jobs.append(job)
 
     def initialize(self):
         for x in range(self.width):
@@ -107,9 +149,6 @@ class World:
         return list(chain(*neighbors))
 
     def place_structure(self, job: Job) -> None:
-        if job.structure_type not in self.blueprints:
-            return
-
         structure = Structure.build_blueprint(
             self.blueprints[job.structure_type], job.tile
         )
@@ -122,5 +161,4 @@ class World:
             for neighbor in neighbors:
                 self.on_structure_changed(neighbor)
 
-            self.jobs.remove(job)
             self.on_structure_changed(structure)

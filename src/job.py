@@ -2,6 +2,7 @@
 Job class
 """
 from .tile import Tile
+from .structure import Structure
 
 
 class Job:
@@ -12,16 +13,12 @@ class Job:
     def __init__(
         self,
         tile: Tile,
-        work_required: float,
-        structure_type: str,
-        # on_completed=None,
-        # on_canceled=None,
+        blueprint: Structure,
     ):
-        self.tile = tile
-        self.work_required = work_required
-        self.structure_type = structure_type
-        # self.on_completed = on_completed
-        # self.on_canceled = on_canceled
+        self.tile: Tile = tile
+        self.blueprint: Structure = blueprint
+        self.work_required = blueprint.build_time
+        self.structure_type = blueprint.type_
 
         self.work_remaining = self.work_required
 

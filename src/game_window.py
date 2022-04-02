@@ -8,10 +8,7 @@ from . import constants
 from .camera_manager import CameraManager
 from .input_manager import InputManager
 from .gui_manager import GUIManager
-from .world_manager import WorldManager
-from .sound_manager import SoundManager
 from .sprite_manager import SpriteManager
-from .build_mode_manager import BuildModeManager
 
 
 class GameWindow(pyglet.window.Window):
