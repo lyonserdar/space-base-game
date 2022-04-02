@@ -28,9 +28,10 @@ class Structure:
 
         self.constructed: bool = False
 
-        self._on_changed_callbacks = set()
+        # Valid placement
+        self.structure_types_needs_to_be_under: list[str] = []
 
-        self.is_valid_position = self.is_valid_position_default
+        self._on_changed_callbacks = set()
 
     # Subscriptions
     def subscribe_on_changed(self, fn) -> None:
@@ -39,21 +40,24 @@ class Structure:
     def unsubscribe_on_structure_changed(self, fn) -> None:
         self._on_changed_callbacks.remove(fn)
 
-    def is_valid_position_default(self, list_of_structures: list["Structure"]) -> bool:
-        # TODO: actually implement it
-        return True
+    def is_valid_position(self, structures_at_tile: list["structure"]) -> bool:
+        if "empty" in self.structure_types_needs_to_be_under:
+            if structures_at_tile:
+                return False
+            else:
+                return True
 
-    def is_valid_position_wall(self, tile: Tile) -> bool:
-        # TODO:
-        if tile._type == TileType.FLOOR:
-            return True
-        return False
+        if self.structure_types_needs_to_be_under:
+            for type_ in self.structure_types_needs_to_be_under:
+                print(type_)
+                if type_ not in (s.type_ for s in structures_at_tile):
+                    return False
 
-    def is_valid_position_door(self, tile: Tile) -> bool:
         return True
 
     @staticmethod
     def create_blueprint(
+        structure_types_needs_to_be_under: list[str],
         type_: str = "",
         movement_speed: float = 0.0,
         width: int = 1,
@@ -69,6 +73,9 @@ class Structure:
             height,
             connected_texture,
         )
+
+        blueprint.structure_types_needs_to_be_under = structure_types_needs_to_be_under
+
         return blueprint
 
     @staticmethod

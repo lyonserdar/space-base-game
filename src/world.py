@@ -36,10 +36,10 @@ class World:
 
         self.blueprints = {
             "floor": Structure.create_blueprint(
-                "floor", movement_speed=0.5, connected_texture=False
+                ["empty"], "floor", movement_speed=0.5, connected_texture=False
             ),
             "wall": Structure.create_blueprint(
-                "wall", movement_speed=0.0, connected_texture=True
+                ["floor"], "wall", movement_speed=0.0, connected_texture=True
             ),
         }
 
