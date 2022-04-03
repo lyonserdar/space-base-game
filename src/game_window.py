@@ -5,6 +5,7 @@ import pyglet
 from pyglet.window import key, mouse
 
 from . import constants
+from .background_manager import BackgroundManager
 from .camera_manager import CameraManager
 from .input_manager import InputManager
 from .gui_manager import GUIManager
@@ -27,11 +28,13 @@ class GameWindow(pyglet.window.Window):
 
     def init(
         self,
+        background_manager: BackgroundManager,
         input_manager: InputManager,
         camera_manager: CameraManager,
         sprite_manager: SpriteManager,
         gui_manager: GUIManager,
     ) -> None:
+        self.background_manager: BackgroundManager = background_manager
         self.input_manager: InputManager = input_manager
         self.camera_manager: CameraManager = camera_manager
         self.sprite_manager: SpriteManager = sprite_manager
@@ -50,6 +53,9 @@ class GameWindow(pyglet.window.Window):
 
     def on_draw(self):
         self.clear()
+
+        with self.camera_manager.background_camera:
+            self.background_manager.batch.draw()
 
         with self.camera_manager.camera:
             self.sprite_manager.batch.draw()

@@ -4,6 +4,7 @@ Game
 import pyglet
 
 from .game_window import GameWindow
+from .background_manager import BackgroundManager
 from .camera_manager import CameraManager
 from .input_manager import InputManager
 from .gui_manager import GUIManager
@@ -20,6 +21,7 @@ class Game:
 
     def __init__(self):
         self.window = GameWindow()
+        self.background_manager: BackgroundManager = BackgroundManager()
         self.input_manager: InputManager = InputManager()
         self.world_manager: WorldManager = WorldManager()
         self.camera_manager: CameraManager = CameraManager()
@@ -29,6 +31,7 @@ class Game:
         self.build_mode_manager: BuildModeManager = BuildModeManager()
 
         self.managers = [
+            self.background_manager,
             self.input_manager,
             self.world_manager,
             self.camera_manager,
@@ -43,11 +46,13 @@ class Game:
 
     def initialize_managers(self):
         self.window.init(
+            self.background_manager,
             self.input_manager,
             self.camera_manager,
             self.sprite_manager,
             self.gui_manager,
         )
+        self.background_manager.init()
         self.input_manager.init()
         self.world_manager.init()
         self.camera_manager.init(self.input_manager, self.window)

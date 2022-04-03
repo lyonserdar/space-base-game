@@ -22,6 +22,7 @@ class CameraManager(Manager):
         self.input_manager: InputManager = input_manager
         self.window = window
 
+        self.background_camera = Camera(self.window)
         self.camera = Camera(
             self.window,
             speed=2.0,
@@ -30,7 +31,6 @@ class CameraManager(Manager):
             max_zoom=8.0,
             center=True,
         )
-
         self.gui_camera = Camera(self.window)
         # Initialize camera position to middle of the world
         self.camera.position = (

@@ -7,6 +7,8 @@ pyglet.resource.reindex()
 pyglet.image.Texture.default_min_filter = pyglet.gl.GL_NEAREST
 pyglet.image.Texture.default_mag_filter = pyglet.gl.GL_NEAREST
 
+background = pyglet.resource.image("background.jpg")
+
 # Load Spritesheets
 wall_spritesheet = pyglet.resource.image("tiles/walls.png")
 wall_seq = pyglet.image.ImageGrid(wall_spritesheet, 6, 9)
