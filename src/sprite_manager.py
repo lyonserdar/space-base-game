@@ -11,6 +11,7 @@ from .tile import Tile
 from .structure import Structure
 from .job import Job
 from .world_manager import WorldManager
+from .character import Character
 
 from .manager import Manager
 
@@ -30,8 +31,9 @@ class SpriteManager(Manager):
         self.forground_group = pyglet.graphics.OrderedGroup(1)
         self.gui_group = pyglet.graphics.OrderedGroup(2)
 
-        self.structure_sprites: dict[Structure, pygame.sprite.Sprite] = {}
-        self.job_sprites: dict[Job, pygame.sprite.Sprite] = {}
+        self.structure_sprites: dict[Structure, pyglet.sprite.Sprite] = {}
+        self.job_sprites: dict[Job, pyglet.sprite.Sprite] = {}
+        self.character_sprites: dict[Character, pyglet.sprite.Sprite] = {}
 
         self.world = self.world_manager.world
 
@@ -47,12 +49,22 @@ class SpriteManager(Manager):
             if structure:
                 sprite = Sprite(
                     self.get_image_for_structure(structure),
-                    x * constants.TILE_SIZE,
-                    y * constants.TILE_SIZE,
+                    structure.tile.x * constants.TILE_SIZE,
+                    structure.tile.y * constants.TILE_SIZE,
                     batch=self.batch,
                     group=self.background_group,
                 )
                 self.structure_sprites[structure] = sprite
+
+        for character in self.world.characters:
+            sprite = Sprite(
+                resources.character,
+                character.current_tile.x * constants.TILE_SIZE,
+                character.current_tile.y * constants.TILE_SIZE,
+                batch=self.batch,
+                group=self.forground_group,
+            )
+            self.character_sprites[character] = sprite
 
     def get_image_for_job(self, job: Job):
         # TODO: merge this with get_image_for_structure
@@ -222,7 +234,8 @@ class SpriteManager(Manager):
             batch=self.batch,
             group=self.forground_group,
         )
-        sprite.color = (255, 0, 0)
+        # sprite.color = (255, 0, 0)
+        sprite.opacity = 128
         self.job_sprites[job] = sprite
 
     def on_job_completed(self, job: Job) -> None:

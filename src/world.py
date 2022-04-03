@@ -8,6 +8,7 @@ from typing import Callable
 from .tile import Tile
 from .structure import Structure
 from .job import Job
+from .character import Character
 
 
 class World:
@@ -26,6 +27,8 @@ class World:
         self.tiles: dict[(int, int), Tile] = {}
         self.blueprints: dict[str, Structure] = {}
         self.structures: dict[Tile, list[Structure]] = {}
+
+        self.characters: list[Character] = []
 
         self._on_structure_changed_callbacks = set()
         self._on_job_created_callbacks = set()
@@ -103,6 +106,7 @@ class World:
                 self.tiles[(x, y)] = tile
                 self.structures[tile] = []
 
+        self.characters.append(Character(self.get_tile_at(50, 50)))
         print("World Initialized")
 
     def get_tile_at(self, x: int, y: int) -> Tile | None:

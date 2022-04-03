@@ -64,6 +64,10 @@ structures = {
     },
 }
 
+character_spritesheet = pyglet.resource.image("character.png")
+character_seq = pyglet.image.ImageGrid(character_spritesheet, 30, 8)
+character = pyglet.image.TextureGrid(character_seq)[8 * 25 + 0]
+
 tile_highlighter = pyglet.resource.image("highlight.png")
 
 audio = {
