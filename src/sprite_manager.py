@@ -59,8 +59,8 @@ class SpriteManager(Manager):
         for character in self.world.characters:
             sprite = Sprite(
                 resources.character,
-                character.current_tile.x * constants.TILE_SIZE,
-                character.current_tile.y * constants.TILE_SIZE,
+                character.x * constants.TILE_SIZE,
+                character.y * constants.TILE_SIZE,
                 batch=self.batch,
                 group=self.forground_group,
             )
@@ -242,4 +242,8 @@ class SpriteManager(Manager):
         del self.job_sprites[job]
 
     def update(self, dt) -> None:
+        for character, sprite in self.character_sprites.items():
+            sprite.x = character.x * constants.TILE_SIZE - constants.TILE_SIZE // 2
+            sprite.y = character.y * constants.TILE_SIZE + constants.TILE_SIZE // 2
+
         pass

@@ -52,7 +52,7 @@ class World:
                 type_="wall",
                 movement_speed=0.0,
                 connected_texture=True,
-                build_time=8,
+                build_time=10,
             ),
         }
 
@@ -85,7 +85,7 @@ class World:
 
     def on_job_completed(self, job: Job) -> None:
         self.place_structure(job)
-        self.jobs.remove(job)
+        # self.jobs.remove(job)
 
         for callback in self._on_job_completed_callbacks:
             callback(job)
@@ -166,3 +166,11 @@ class World:
                 self.on_structure_changed(neighbor)
 
             self.on_structure_changed(structure)
+
+    def update(self, dt) -> None:
+        for character in self.characters:
+            if not character.job:
+                if self.jobs:
+                    job = self.jobs.pop()
+                    character.assign_job(job)
+            character.update(dt)

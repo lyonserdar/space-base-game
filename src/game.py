@@ -84,6 +84,6 @@ class Game:
         self.input_manager.mouse.scroll = 0, 0
 
         # DEBUG
-        if self.world_manager.world.jobs:
-            job = self.world_manager.world.jobs[0]
-            job.do_work(1)
+        # if self.world_manager.world.jobs:
+        #     job = self.world_manager.world.jobs[0]
+        #     job.do_work(1)

@@ -21,3 +21,13 @@ class Tile:
     @position.setter
     def position(self, value: tuple) -> None:
         self.x, self.y = value
+
+    def is_neighbor(self, tile: "Tile", check_diagonal: bool = False) -> bool:
+        if abs(self.x - tile.x) + abs(self.y - tile.y) == 1:
+            return True
+
+        if check_diagonal:
+            if abs(self.x - tile.x) == 1 and abs(self.y - tile.y) == 1:
+                return True
+
+        return False

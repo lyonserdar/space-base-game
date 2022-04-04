@@ -25,4 +25,4 @@ class WorldManager(Manager):
         pass
 
     def update(self, dt) -> None:
-        pass
+        self.world.update(dt)
