@@ -42,7 +42,7 @@ class Structure:
     def unsubscribe_on_structure_changed(self, fn) -> None:
         self._on_changed_callbacks.remove(fn)
 
-    def is_valid_position(self, structures_at_tile: list["structure"]) -> bool:
+    def is_valid_position(self, structures_at_tile: list["Structure"]) -> bool:
         if "empty" in self.structure_types_needs_to_be_under:
             if structures_at_tile:
                 return False

@@ -1,14 +1,15 @@
 """
 Word class for world data
 """
-from itertools import chain
 from collections import deque
+from itertools import chain
 from typing import Callable
 
-from .tile import Tile
-from .structure import Structure
-from .job import Job
 from .character import Character
+from .job import Job
+from .pathfinding import TileGraph
+from .structure import Structure
+from .tile import Tile
 
 
 class World:
@@ -33,6 +34,8 @@ class World:
         self._on_structure_changed_callbacks = set()
         self._on_job_created_callbacks = set()
         self._on_job_completed_callbacks = set()
+
+        self.tile_graph: TileGraph = None
 
         # TODO: refactor to job manager
         self.jobs = deque()
@@ -90,6 +93,8 @@ class World:
         for callback in self._on_job_completed_callbacks:
             callback(job)
 
+        self.tile_graph = TileGraph(self)
+
     def create_job(self, tile: Tile, structure_type: str) -> None:
         if not any(job for job in self.jobs if job.tile == tile):
             blueprint = self.blueprints[structure_type]
@@ -108,6 +113,7 @@ class World:
 
         self.characters.append(Character(self.get_tile_at(50, 50)))
         print("World Initialized")
+        self.tile_graph = TileGraph(self)
 
     def get_tile_at(self, x: int, y: int) -> Tile | None:
         if (x, y) not in self.tiles:
