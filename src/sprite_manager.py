@@ -4,16 +4,14 @@ Sprite Manager
 import pyglet
 from pyglet.sprite import Sprite
 
-from . import constants
-from . import resources
-from .world import World
-from .tile import Tile
-from .structure import Structure
-from .job import Job
-from .world_manager import WorldManager
+from . import constants, resources
 from .character import Character
-
+from .job import Job
 from .manager import Manager
+from .structure import Structure
+from .tile import Tile
+from .world import World
+from .world_manager import WorldManager
 
 
 class SpriteManager(Manager):
@@ -45,16 +43,17 @@ class SpriteManager(Manager):
 
     def create_sprites(self) -> None:
         # TODO: create dynamic ordering system aka groups
-        for structure in self.world_manager.world.structures.values():
-            if structure:
-                sprite = Sprite(
-                    self.get_image_for_structure(structure),
-                    structure.tile.x * constants.TILE_SIZE,
-                    structure.tile.y * constants.TILE_SIZE,
-                    batch=self.batch,
-                    group=self.background_group,
-                )
-                self.structure_sprites[structure] = sprite
+        for structures in self.world_manager.world.structures.values():
+            for structure in structures:
+                if structure:
+                    sprite = Sprite(
+                        self.get_image_for_structure(structure),
+                        structure.tile.x * constants.TILE_SIZE,
+                        structure.tile.y * constants.TILE_SIZE,
+                        batch=self.batch,
+                        group=self.background_group,
+                    )
+                    self.structure_sprites[structure] = sprite
 
         for character in self.world.characters:
             sprite = Sprite(

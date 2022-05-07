@@ -7,7 +7,7 @@ from typing import Callable
 
 from .character import Character
 from .job import Job
-from .pathfinding import TileGraph
+from .pathfinding import AStar, TileGraph
 from .structure import Structure
 from .tile import Tile
 
@@ -40,8 +40,6 @@ class World:
         # TODO: refactor to job manager
         self.jobs = deque()
 
-        self.initialize()
-
         self.blueprints = {
             "floor": Structure.create_blueprint(
                 structure_types_needs_to_be_under=["empty"],
@@ -58,6 +56,8 @@ class World:
                 build_time=10,
             ),
         }
+
+        self.initialize()
 
     # Subscriptions
     def subscribe_on_structure_changed(self, fn):
@@ -94,6 +94,12 @@ class World:
             callback(job)
 
         self.tile_graph = TileGraph(self)
+        # Test A-star
+        a_star = AStar(
+            self,
+            self.get_tile_at(50, 50),
+            self.get_tile_at(54, 54),
+        )
 
     def create_job(self, tile: Tile, structure_type: str) -> None:
         if not any(job for job in self.jobs if job.tile == tile):
@@ -114,6 +120,13 @@ class World:
         self.characters.append(Character(self.get_tile_at(50, 50)))
         print("World Initialized")
         self.tile_graph = TileGraph(self)
+
+        for x in range(45, 55):
+            for y in range(45, 55):
+                tile = self.get_tile_at(x, y)
+                self.structures[tile].append(
+                    Structure.build_blueprint(self.blueprints["floor"], tile)
+                )
 
     def get_tile_at(self, x: int, y: int) -> Tile | None:
         if (x, y) not in self.tiles:

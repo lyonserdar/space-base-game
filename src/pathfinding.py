@@ -3,6 +3,9 @@ pathfinding.py
 """
 from __future__ import annotations
 
+from collections import defaultdict
+from math import inf
+from queue import PriorityQueue
 from typing import TYPE_CHECKING, Generic, TypeVar
 
 from .tile import Tile
@@ -21,7 +24,7 @@ class Node(Generic[T]):
 
     def __init__(self, data: T):
         self.data: T = data
-        self.edges: list[Edge] = []
+        self.edges: dict["Node", Edge] = {}
 
 
 class Edge:
@@ -81,7 +84,77 @@ class TileGraph:
                         )
                         cost = (self_cost + neighbor_cost) / 2
                         edge = Edge(cost, self.nodes[neighbor_tile])
-                        node.edges.append(edge)
+                        node.edges[node] = edge
                         count += 1
 
         return count
+
+
+class AStar:
+    """
+    A Star Search Algorithm for pathfinding
+    It finds a path from start to goal
+    """
+
+    def __init__(self, world: World, start: Tile, goal: Tile) -> None:
+        self.world: World = world
+        self.nodes: dict[Tile, Node] = world.tile_graph.nodes
+
+        self.start: Node = self.nodes[start]
+        self.goal: Node = self.nodes[goal]
+
+        self.path: list[Tile] = []
+        path = self.run()
+        print("Path", path)
+
+    def run(self) -> list[Node]:
+        """Implementation of the algorithm"""
+        open_set = PriorityQueue()
+        came_from: dict[Node, Node] = {}
+
+        g_score: dict[Node, float | inf] = defaultdict(lambda: inf)
+        g_score[self.start] = 0.0
+
+        f_score: dict[Node, float | inf] = defaultdict(lambda: inf)
+        f_score[self.start] = self.heuristic(self.start)
+
+        open_set.put((f_score[self.start], self.start))
+
+        while open_set.qsize():
+            current = open_set.get()[1]
+            print("current", current, "size", open_set.qsize())
+
+            if current == self.goal:
+                print("goal")
+                return self.reconstruct_path(came_from, current)
+
+            for neighbor, edge in current.edges.items():
+                print("for")
+                tentative_g_score = g_score[current] + edge.cost
+                print("tgs", tentative_g_score, "gs", g_score[neighbor])
+
+                if tentative_g_score < g_score[neighbor]:
+                    print("first if")
+                    came_from[neighbor] = current
+                    g_score[neighbor] = tentative_g_score
+                    f_score[neighbor] = tentative_g_score + self.heuristic(neighbor)
+
+                    if neighbor not in (n[1] for n in list(open_set)):
+                        print("if")
+                        open_set.put(f_score[neighbor], neighbor)
+
+    def reconstruct_path(
+        self, came_from: dict[Node, Node], current: Node
+    ) -> list[Node]:
+        """Creates the path and returns the total path as a list"""
+        path = [current]
+
+        while current in came_from:
+            current = came_from[current]
+            path.insert(0, current)
+
+        return path
+
+    def heuristic(self, node: Node) -> float:
+        """Heuristic function that uses Manhattan distance on a square grid"""
+        return abs(node.data.x - self.goal.data.x) + abs(node.data.y - self.goal.data.y)
