@@ -5,9 +5,9 @@ from collections import deque
 from itertools import chain
 from typing import Callable
 
+from .ai.pathfinding import AStar, TileGraph
 from .character import Character
 from .job import Job
-from .pathfinding import AStar, TileGraph
 from .structure import Structure
 from .tile import Tile
 
@@ -94,12 +94,12 @@ class World:
             callback(job)
 
         self.tile_graph = TileGraph(self)
-        # Test A-star
-        a_star = AStar(
-            self,
-            self.get_tile_at(50, 50),
-            self.get_tile_at(54, 54),
-        )
+        # # Test A-star
+        # a_star = AStar(
+        #     self,
+        #     self.get_tile_at(50, 50),
+        #     self.get_tile_at(54, 54),
+        # )
 
     def create_job(self, tile: Tile, structure_type: str) -> None:
         if not any(job for job in self.jobs if job.tile == tile):
@@ -191,5 +191,8 @@ class World:
             if not character.job:
                 if self.jobs:
                     job = self.jobs.pop()
-                    character.assign_job(job)
+
+                    character.assign_job(
+                        job, AStar(self, character.tile, job.tile).path
+                    )
             character.update(dt)

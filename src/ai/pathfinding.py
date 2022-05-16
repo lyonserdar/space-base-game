@@ -3,15 +3,17 @@ pathfinding.py
 """
 from __future__ import annotations
 
+import heapq
 from collections import defaultdict
+from dataclasses import dataclass, field
+from itertools import count
 from math import inf
-from queue import PriorityQueue
-from typing import TYPE_CHECKING, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
-from .tile import Tile
+from ..tile import Tile
 
 if TYPE_CHECKING:
-    from .world import World
+    from ..world import World
 
 
 T = TypeVar("T")
@@ -76,6 +78,7 @@ class TileGraph:
                         and tile != neighbor_tile
                         and neighbor_tile in self.nodes
                     ):
+                        neighbor_node = self.nodes[neighbor_tile]
                         self_cost = 1 - sum(
                             s.movement_speed for s in world.structures[tile]
                         )
@@ -84,10 +87,17 @@ class TileGraph:
                         )
                         cost = (self_cost + neighbor_cost) / 2
                         edge = Edge(cost, self.nodes[neighbor_tile])
-                        node.edges[node] = edge
+                        node.edges[neighbor_node] = edge
                         count += 1
 
         return count
+
+
+# @dataclass(order=True)
+# class PrioritizedItem:
+#     """Class for items used in heapq/Priority Queue"""
+#     priority: int
+#     item: Any=field(compare=False)
 
 
 class AStar:
@@ -100,16 +110,28 @@ class AStar:
         self.world: World = world
         self.nodes: dict[Tile, Node] = world.tile_graph.nodes
 
-        self.start: Node = self.nodes[start]
-        self.goal: Node = self.nodes[goal]
+        self.start: Node = None
+        if start in self.nodes:
+            self.start = self.nodes[start]
+
+        self.goal: Node = None
+        if goal in self.nodes:
+            self.goal = self.nodes[goal]
 
         self.path: list[Tile] = []
-        path = self.run()
-        print("Path", path)
+
+        if self.goal and self.start:
+            self.counter = count()
+            path = self.run()
+            print("Path:")
+            for tile in path:
+                print(tile.x, tile.y)
+        else:
+            print("Path:", "no path")
 
     def run(self) -> list[Node]:
         """Implementation of the algorithm"""
-        open_set = PriorityQueue()
+        open_set = []
         came_from: dict[Node, Node] = {}
 
         g_score: dict[Node, float | inf] = defaultdict(lambda: inf)
@@ -118,20 +140,21 @@ class AStar:
         f_score: dict[Node, float | inf] = defaultdict(lambda: inf)
         f_score[self.start] = self.heuristic(self.start)
 
-        open_set.put((f_score[self.start], self.start))
+        heapq.heappush(open_set, (f_score[self.start], next(self.counter), self.start))
 
-        while open_set.qsize():
-            current = open_set.get()[1]
-            print("current", current, "size", open_set.qsize())
+        while open_set:
+            print("size", len(open_set))
+            current = open_set[0][2]
 
             if current == self.goal:
                 print("goal")
                 return self.reconstruct_path(came_from, current)
 
+            heapq.heappop(open_set)
+
+            print("items", len(current.edges))
             for neighbor, edge in current.edges.items():
-                print("for")
                 tentative_g_score = g_score[current] + edge.cost
-                print("tgs", tentative_g_score, "gs", g_score[neighbor])
 
                 if tentative_g_score < g_score[neighbor]:
                     print("first if")
@@ -139,21 +162,24 @@ class AStar:
                     g_score[neighbor] = tentative_g_score
                     f_score[neighbor] = tentative_g_score + self.heuristic(neighbor)
 
-                    if neighbor not in (n[1] for n in list(open_set)):
+                    if neighbor not in (n[2] for n in list(open_set)):
                         print("if")
-                        open_set.put(f_score[neighbor], neighbor)
+                        heapq.heappush(
+                            open_set, (f_score[neighbor], next(self.counter), neighbor)
+                        )
 
     def reconstruct_path(
         self, came_from: dict[Node, Node], current: Node
-    ) -> list[Node]:
+    ) -> list[Tile]:
         """Creates the path and returns the total path as a list"""
         path = [current]
 
         while current in came_from:
             current = came_from[current]
-            path.insert(0, current)
+            # path.insert(0, current)
+            path.append(current)
 
-        return path
+        return [node.data for node in path]
 
     def heuristic(self, node: Node) -> float:
         """Heuristic function that uses Manhattan distance on a square grid"""
